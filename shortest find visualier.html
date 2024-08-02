@@ -1,0 +1,180 @@
+=<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Pathfinder Visualization</title>
+    <style>
+        body {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            font-family: Arial, sans-serif;
+            background-color: #e0f7fa;
+            margin: 0;
+            height: 100vh;
+        }
+        .container {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            background-color: #ffffff;
+            border-radius: 10px;
+            box-shadow: 0 0 10px rgba(0, 0, 0, 0.2);
+            padding: 20px;
+            text-align: center;
+        }
+        h1 {
+            color: #00796b;
+            margin-bottom: 20px;
+        }
+        #grid {
+            display: grid;
+            grid-template-columns: repeat(20, 25px);
+            grid-template-rows: repeat(20, 25px);
+            gap: 1px;
+            margin-bottom: 20px;
+        }
+        .cell {
+            width: 25px;
+            height: 25px;
+            background-color: #fff;
+            border: 1px solid #b2dfdb;
+            transition: background-color 0.3s;
+        }
+        .cell.start {
+            background-color: #4caf50;
+        }
+        .cell.end {
+            background-color: #f44336;
+        }
+        .cell.wall {
+            background-color: #263238;
+        }
+        .cell.path {
+            background-color: #0288d1;
+        }
+        #controls {
+            display: flex;
+            gap: 10px;
+        }
+        .btn {
+            padding: 10px 20px;
+            background-color: #00796b;
+            color: white;
+            border: none;
+            cursor: pointer;
+            font-size: 16px;
+            border-radius: 5px;
+            transition: background-color 0.3s;
+        }
+        .btn:hover {
+            background-color: #004d40;
+        }
+        .btn:disabled {
+            background-color: #b2dfdb;
+            cursor: not-allowed;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Pathfinder Algorithm Visualization(Dijastra's Algorithm)</h1>
+        <div id="grid"></div>
+        <div id="controls">
+            <button class="btn" id="refreshBtn">Refresh</button>
+            <button class="btn" id="startBtn">Start</button>
+        </div>
+    </div>
+    <script>
+        const rows = 20;
+        const cols = 20;
+        const gridElement = document.getElementById('grid');
+        const refreshBtn = document.getElementById('refreshBtn');
+        const startBtn = document.getElementById('startBtn');
+        let grid = [];
+        let startCell = [0, 0];
+        let endCell = [19, 19];
+
+        function createGrid() {
+            gridElement.innerHTML = '';
+            grid = [];
+            for (let row = 0; row < rows; row++) {
+                let rowArray = [];
+                for (let col = 0; col < cols; col++) {
+                    const cell = document.createElement('div');
+                    cell.classList.add('cell');
+                    if (row === startCell[0] && col === startCell[1]) {
+                        cell.classList.add('start');
+                    } else if (row === endCell[0] && col === endCell[1]) {
+                        cell.classList.add('end');
+                    } else if (Math.random() < 0.3) {
+                        cell.classList.add('wall');
+                    }
+                    gridElement.appendChild(cell);
+                    rowArray.push(cell);
+                }
+                grid.push(rowArray);
+            }
+        }
+
+        function findPath() {
+            let openSet = [startCell];
+            let cameFrom = {};
+            let distance = Array(rows).fill().map(() => Array(cols).fill(Infinity));
+            distance[startCell[0]][startCell[1]] = 0;
+
+            while (openSet.length > 0) {
+                let current = openSet.reduce((lowest, cell) => {
+                    const [row, col] = cell;
+                    return (lowest === null || distance[row][col] < distance[lowest[0]][lowest[1]]) ? cell : lowest;
+                }, null);
+
+                if (current[0] === endCell[0] && current[1] === endCell[1]) {
+                    reconstructPath(cameFrom, current);
+                    alert("Your shortest path successfully fetched");
+                    return;
+                }
+
+                openSet = openSet.filter(cell => !(cell[0] === current[0] && cell[1] === current[1]));
+                let [currentRow, currentCol] = current;
+
+                for (let [dx, dy] of [[0, 1], [1, 0], [0, -1], [-1, 0]]) {
+                    let neighbor = [currentRow + dx, currentCol + dy];
+                    if (neighbor[0] < 0 || neighbor[0] >= rows || neighbor[1] < 0 || neighbor[1] >= cols) continue;
+                    if (grid[neighbor[0]][neighbor[1]].classList.contains('wall')) continue;
+
+                    let tentativeDistance = distance[currentRow][currentCol] + 1;
+                    if (tentativeDistance < distance[neighbor[0]][neighbor[1]]) {
+                        cameFrom[`${neighbor[0]},${neighbor[1]}`] = current;
+                        distance[neighbor[0]][neighbor[1]] = tentativeDistance;
+                        if (!openSet.some(cell => cell[0] === neighbor[0] && cell[1] === neighbor[1])) {
+                            openSet.push(neighbor);
+                        }
+                    }
+                }
+            }
+
+            alert("No path available");
+        }
+
+        function reconstructPath(cameFrom, current) {
+            while (current) {
+                const [row, col] = current;
+                if (!grid[row][col].classList.contains('start') && !grid[row][col].classList.contains('end')) {
+                    grid[row][col].classList.add('path');
+                }
+                current = cameFrom[`${row},${col}`];
+            }
+        }
+
+        refreshBtn.addEventListener('click', createGrid);
+        startBtn.addEventListener('click', () => {
+            createGrid(); // Refresh the grid to clear previous paths
+            findPath(); // Find and show the shortest path
+        });
+        createGrid();
+    </script>
+</body>
+</html>
